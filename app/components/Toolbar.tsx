@@ -11,6 +11,10 @@ interface ToolbarProps {
   onDownload: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  zoom: number;
+  onZoomChange: (z: number) => void;
+  showMinimap: boolean;
+  onToggleMinimap: () => void;
 }
 
 const PRESET_COLORS = [
@@ -152,6 +156,113 @@ function StickyNoteIcon() {
   );
 }
 
+function TextIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="4 7 4 4 20 4 20 7" />
+      <line x1="9" y1="20" x2="15" y2="20" />
+      <line x1="12" y1="4" x2="12" y2="20" />
+    </svg>
+  );
+}
+
+function RectangleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    </svg>
+  );
+}
+
+function CircleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+    </svg>
+  );
+}
+
+function DiamondIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2 L22 12 L12 22 L2 12 Z" />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
+function LineIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="19" x2="19" y2="5" />
+    </svg>
+  );
+}
+
+function ConnectorIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6" cy="6" r="3" />
+      <circle cx="18" cy="18" r="3" />
+      <line x1="8" y1="8" x2="16" y2="16" />
+    </svg>
+  );
+}
+
+function FrameIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="2" ry="2" strokeDasharray="4 4" />
+    </svg>
+  );
+}
+
+function SelectIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+    </svg>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </svg>
+  );
+}
+
+function MapIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+      <line x1="8" y1="2" x2="8" y2="18" />
+      <line x1="16" y1="6" x2="16" y2="22" />
+    </svg>
+  );
+}
+
+const STICKY_NOTE_COLORS = [
+  { name: "Yellow", color: "#fef08a" },
+  { name: "Pink", color: "#fbcfe8" },
+  { name: "Blue", color: "#bfdbfe" },
+  { name: "Green", color: "#bbf7d0" },
+  { name: "Orange", color: "#fed7aa" },
+  { name: "Purple", color: "#e9d5ff" },
+];
+
 export default function Toolbar({
   settings,
   onSettingsChange,
@@ -161,6 +272,10 @@ export default function Toolbar({
   onDownload,
   canUndo,
   canRedo,
+  zoom,
+  onZoomChange,
+  showMinimap,
+  onToggleMinimap,
 }: ToolbarProps) {
   const setTool = (tool: Tool) =>
     onSettingsChange({ ...settings, tool });
@@ -174,6 +289,27 @@ export default function Toolbar({
   const setBackgroundColor = (backgroundColor: string) =>
     onSettingsChange({ ...settings, backgroundColor });
 
+  const setFontSize = (fontSize: number) =>
+    onSettingsChange({ ...settings, fontSize });
+
+  const toggleTextBold = () =>
+    onSettingsChange({ ...settings, textBold: !settings.textBold });
+
+  const toggleTextItalic = () =>
+    onSettingsChange({ ...settings, textItalic: !settings.textItalic });
+
+  const toggleTextUnderline = () =>
+    onSettingsChange({ ...settings, textUnderline: !settings.textUnderline });
+
+  const setTextAlign = (align: "left" | "center" | "right") =>
+    onSettingsChange({ ...settings, textAlign: align });
+
+  const toggleGridSnapping = () =>
+    onSettingsChange({ ...settings, gridSnapping: !settings.gridSnapping });
+
+  const toggleShowGrid = () =>
+    onSettingsChange({ ...settings, showGrid: !settings.showGrid });
+
   return (
     <header className="flex items-center gap-2 px-4 py-2 bg-white border-b border-gray-200 shadow-sm flex-wrap">
       {/* App name */}
@@ -184,6 +320,9 @@ export default function Toolbar({
       <div className="w-px h-6 bg-gray-200 mx-1" />
 
       {/* Tools */}
+      <ToolButton tool="select" currentTool={settings.tool} onSelect={setTool} title="Select (V)">
+        <SelectIcon />
+      </ToolButton>
       <ToolButton tool="pen" currentTool={settings.tool} onSelect={setTool} title="Pen (P)">
         <PenIcon />
       </ToolButton>
@@ -192,6 +331,34 @@ export default function Toolbar({
       </ToolButton>
       <ToolButton tool="sticky-note" currentTool={settings.tool} onSelect={setTool} title="Sticky Note (N)">
         <StickyNoteIcon />
+      </ToolButton>
+      <ToolButton tool="text" currentTool={settings.tool} onSelect={setTool} title="Text (T)">
+        <TextIcon />
+      </ToolButton>
+
+      <div className="w-px h-6 bg-gray-200 mx-1" />
+
+      {/* Shapes */}
+      <ToolButton tool="rectangle" currentTool={settings.tool} onSelect={setTool} title="Rectangle (R)">
+        <RectangleIcon />
+      </ToolButton>
+      <ToolButton tool="circle" currentTool={settings.tool} onSelect={setTool} title="Circle (C)">
+        <CircleIcon />
+      </ToolButton>
+      <ToolButton tool="diamond" currentTool={settings.tool} onSelect={setTool} title="Diamond">
+        <DiamondIcon />
+      </ToolButton>
+      <ToolButton tool="arrow" currentTool={settings.tool} onSelect={setTool} title="Arrow">
+        <ArrowIcon />
+      </ToolButton>
+      <ToolButton tool="line" currentTool={settings.tool} onSelect={setTool} title="Line">
+        <LineIcon />
+      </ToolButton>
+      <ToolButton tool="connector" currentTool={settings.tool} onSelect={setTool} title="Connector">
+        <ConnectorIcon />
+      </ToolButton>
+      <ToolButton tool="frame" currentTool={settings.tool} onSelect={setTool} title="Frame (F)">
+        <FrameIcon />
       </ToolButton>
 
       <div className="w-px h-6 bg-gray-200 mx-1" />
@@ -276,6 +443,66 @@ export default function Toolbar({
           />
         </label>
       </div>
+
+      <div className="w-px h-6 bg-gray-200 mx-1" />
+
+      {/* Text formatting (shown when text tool is active) */}
+      {settings.tool === "text" && (
+        <>
+          <select
+            value={settings.fontSize}
+            onChange={(e) => setFontSize(Number(e.target.value))}
+            className="px-2 py-1 border border-gray-300 rounded text-sm"
+            title="Font size"
+          >
+            <option value="12">12px</option>
+            <option value="14">14px</option>
+            <option value="16">16px</option>
+            <option value="18">18px</option>
+            <option value="24">24px</option>
+            <option value="32">32px</option>
+            <option value="48">48px</option>
+          </select>
+          <IconButton onClick={toggleTextBold} active={settings.textBold} title="Bold">
+            <strong>B</strong>
+          </IconButton>
+          <IconButton onClick={toggleTextItalic} active={settings.textItalic} title="Italic">
+            <em>I</em>
+          </IconButton>
+          <IconButton onClick={toggleTextUnderline} active={settings.textUnderline} title="Underline">
+            <u>U</u>
+          </IconButton>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+        </>
+      )}
+
+      {/* Sticky note colors (shown when sticky-note tool is active) */}
+      {settings.tool === "sticky-note" && (
+        <>
+          <span className="text-sm text-gray-600 select-none">Note color:</span>
+          {STICKY_NOTE_COLORS.map((sc) => (
+            <button
+              key={sc.color}
+              onClick={() => onSettingsChange({ ...settings, color: sc.color })}
+              title={sc.name}
+              className="w-6 h-6 rounded border-2 border-gray-300 hover:scale-110 transition-transform"
+              style={{ backgroundColor: sc.color }}
+            />
+          ))}
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+        </>
+      )}
+
+      {/* Grid and snap options */}
+      <IconButton onClick={toggleShowGrid} active={settings.showGrid} title="Show Grid (Ctrl+G)">
+        <GridIcon />
+      </IconButton>
+      <IconButton onClick={toggleGridSnapping} active={settings.gridSnapping} title="Snap to Grid">
+        <span className="text-xs font-bold">SNAP</span>
+      </IconButton>
+      <IconButton onClick={onToggleMinimap} active={showMinimap} title="Toggle Mini-map (M)">
+        <MapIcon />
+      </IconButton>
 
       <div className="w-px h-6 bg-gray-200 mx-1" />
 
