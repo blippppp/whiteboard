@@ -15,6 +15,10 @@ interface ToolbarProps {
   onZoomChange: (z: number) => void;
   showMinimap: boolean;
   onToggleMinimap: () => void;
+  onAlign?: (alignment: "left" | "right" | "center" | "top" | "bottom" | "middle") => void;
+  onGroup?: () => void;
+  onUngroup?: () => void;
+  hasSelection: boolean;
 }
 
 const PRESET_COLORS = [
@@ -276,6 +280,10 @@ export default function Toolbar({
   onZoomChange,
   showMinimap,
   onToggleMinimap,
+  onAlign,
+  onGroup,
+  onUngroup,
+  hasSelection,
 }: ToolbarProps) {
   const setTool = (tool: Tool) =>
     onSettingsChange({ ...settings, tool });
@@ -503,6 +511,44 @@ export default function Toolbar({
       <IconButton onClick={onToggleMinimap} active={showMinimap} title="Toggle Mini-map (M)">
         <MapIcon />
       </IconButton>
+
+      {/* Alignment tools (shown when objects are selected) */}
+      {hasSelection && onAlign && (
+        <>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+          <IconButton onClick={() => onAlign("left")} title="Align Left">
+            <span className="text-xs font-bold">⫷</span>
+          </IconButton>
+          <IconButton onClick={() => onAlign("center")} title="Align Center">
+            <span className="text-xs font-bold">⫼</span>
+          </IconButton>
+          <IconButton onClick={() => onAlign("right")} title="Align Right">
+            <span className="text-xs font-bold">⫸</span>
+          </IconButton>
+          <IconButton onClick={() => onAlign("top")} title="Align Top">
+            <span className="text-xs font-bold">⫯</span>
+          </IconButton>
+          <IconButton onClick={() => onAlign("middle")} title="Align Middle">
+            <span className="text-xs font-bold">⊟</span>
+          </IconButton>
+          <IconButton onClick={() => onAlign("bottom")} title="Align Bottom">
+            <span className="text-xs font-bold">⫰</span>
+          </IconButton>
+        </>
+      )}
+
+      {/* Grouping tools */}
+      {hasSelection && onGroup && onUngroup && (
+        <>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+          <IconButton onClick={onGroup} title="Group (Ctrl+G)">
+            <span className="text-xs font-bold">GRP</span>
+          </IconButton>
+          <IconButton onClick={onUngroup} title="Ungroup (Ctrl+Shift+G)">
+            <span className="text-xs font-bold">UNGRP</span>
+          </IconButton>
+        </>
+      )}
 
       <div className="w-px h-6 bg-gray-200 mx-1" />
 

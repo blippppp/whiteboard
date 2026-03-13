@@ -124,6 +124,7 @@ export default function Whiteboard() {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [showMinimap, setShowMinimap] = useState(false);
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
 
   const isDrawing = useRef(false);
   const currentStroke = useRef<Stroke | null>(null);
@@ -148,6 +149,7 @@ export default function Whiteboard() {
   const panStart = useRef<Point>({ x: 0, y: 0 });
 
   const getCursor = useCallback(() => {
+    if (isSpacePressed) return isPanning ? "grabbing" : "grab";
     if (isPanning) return "grabbing";
     if (settings.tool === "eraser") return "cell";
     if (settings.tool === "sticky-note") return "copy";
@@ -155,7 +157,7 @@ export default function Whiteboard() {
     if (settings.tool === "text") return "text";
     if (["rectangle", "circle", "diamond", "arrow", "line", "connector", "frame"].includes(settings.tool)) return "crosshair";
     return "crosshair";
-  }, [settings.tool, isPanning]);
+  }, [settings.tool, isPanning, isSpacePressed]);
 
   const getCanvasPoint = useCallback(
     (e: { clientX: number; clientY: number }): Point => {
@@ -441,6 +443,101 @@ export default function Whiteboard() {
     setSelectedObjects([newConnector.id]);
   }, [settings.color, settings.strokeWidth, snapToGrid]);
 
+  const groupObjects = useCallback(() => {
+    if (selectedObjects.length < 2) return;
+    const newGroup: ObjectGroup = {
+      id: crypto.randomUUID(),
+      objectIds: [...selectedObjects],
+    };
+    setGroups((prev) => [...prev, newGroup]);
+  }, [selectedObjects]);
+
+  const ungroupObjects = useCallback(() => {
+    const objectsInGroups = selectedObjects.filter((id) =>
+      groups.some((g) => g.objectIds.includes(id))
+    );
+    if (objectsInGroups.length === 0) return;
+    setGroups((prev) =>
+      prev.filter((g) => !g.objectIds.some((id) => objectsInGroups.includes(id)))
+    );
+  }, [selectedObjects, groups]);
+
+  const alignObjects = useCallback((alignment: "left" | "right" | "center" | "top" | "bottom" | "middle") => {
+    if (selectedObjects.length < 2) return;
+    
+    const selectedNotes = stickyNotes.filter((n) => selectedObjects.includes(n.id));
+    const selectedShapes = shapes.filter((s) => selectedObjects.includes(s.id));
+    const selectedTextBoxes = textBoxes.filter((t) => selectedObjects.includes(t.id));
+    
+    if (selectedNotes.length === 0 && selectedShapes.length === 0 && selectedTextBoxes.length === 0) return;
+
+    const allObjects = [
+      ...selectedNotes.map((n) => ({ id: n.id, x: n.x, y: n.y, width: n.width, height: n.height })),
+      ...selectedShapes.map((s) => ({ id: s.id, x: s.x, y: s.y, width: s.width, height: s.height })),
+      ...selectedTextBoxes.map((t) => ({ id: t.id, x: t.x, y: t.y, width: t.width, height: t.height })),
+    ];
+
+    let targetValue = 0;
+    if (alignment === "left") {
+      targetValue = Math.min(...allObjects.map((o) => o.x));
+    } else if (alignment === "right") {
+      targetValue = Math.max(...allObjects.map((o) => o.x + o.width));
+    } else if (alignment === "center") {
+      const minX = Math.min(...allObjects.map((o) => o.x));
+      const maxX = Math.max(...allObjects.map((o) => o.x + o.width));
+      targetValue = (minX + maxX) / 2;
+    } else if (alignment === "top") {
+      targetValue = Math.min(...allObjects.map((o) => o.y));
+    } else if (alignment === "bottom") {
+      targetValue = Math.max(...allObjects.map((o) => o.y + o.height));
+    } else if (alignment === "middle") {
+      const minY = Math.min(...allObjects.map((o) => o.y));
+      const maxY = Math.max(...allObjects.map((o) => o.y + o.height));
+      targetValue = (minY + maxY) / 2;
+    }
+
+    // Update positions
+    selectedNotes.forEach((note) => {
+      let newX = note.x;
+      let newY = note.y;
+      if (alignment === "left") newX = targetValue;
+      else if (alignment === "right") newX = targetValue - note.width;
+      else if (alignment === "center") newX = targetValue - note.width / 2;
+      else if (alignment === "top") newY = targetValue;
+      else if (alignment === "bottom") newY = targetValue - note.height;
+      else if (alignment === "middle") newY = targetValue - note.height / 2;
+      updateStickyNote(note.id, { x: newX, y: newY });
+    });
+
+    selectedShapes.forEach((shape) => {
+      let newX = shape.x;
+      let newY = shape.y;
+      if (alignment === "left") newX = targetValue;
+      else if (alignment === "right") newX = targetValue - shape.width;
+      else if (alignment === "center") newX = targetValue - shape.width / 2;
+      else if (alignment === "top") newY = targetValue;
+      else if (alignment === "bottom") newY = targetValue - shape.height;
+      else if (alignment === "middle") newY = targetValue - shape.height / 2;
+      setShapes((prev) =>
+        prev.map((s) => (s.id === shape.id ? { ...s, x: newX, y: newY } : s))
+      );
+    });
+
+    selectedTextBoxes.forEach((textBox) => {
+      let newX = textBox.x;
+      let newY = textBox.y;
+      if (alignment === "left") newX = targetValue;
+      else if (alignment === "right") newX = targetValue - textBox.width;
+      else if (alignment === "center") newX = targetValue - textBox.width / 2;
+      else if (alignment === "top") newY = targetValue;
+      else if (alignment === "bottom") newY = targetValue - textBox.height;
+      else if (alignment === "middle") newY = targetValue - textBox.height / 2;
+      setTextBoxes((prev) =>
+        prev.map((t) => (t.id === textBox.id ? { ...t, x: newX, y: newY } : t))
+      );
+    });
+  }, [selectedObjects, stickyNotes, shapes, textBoxes, updateStickyNote]);
+
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -530,7 +627,7 @@ export default function Whiteboard() {
       const point = getCanvasPoint(e.nativeEvent);
       
       // Check for panning with spacebar
-      if (e.nativeEvent.button === 0 && (e.nativeEvent as any).spacebarPressed) {
+      if (isSpacePressed && e.nativeEvent.button === 0) {
         setIsPanning(true);
         panStart.current = { x: e.clientX, y: e.clientY };
         return;
@@ -550,7 +647,7 @@ export default function Whiteboard() {
         startDrawing(point);
       }
     },
-    [startDrawing, getCanvasPoint, settings.tool, createStickyNote, createTextBox]
+    [startDrawing, getCanvasPoint, settings.tool, createStickyNote, createTextBox, isSpacePressed]
   );
 
   const onMouseMove = useCallback(
@@ -767,23 +864,74 @@ export default function Whiteboard() {
     redrawAll();
   }, [redrawAll]);
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
+    const container = containerRef.current;
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    // Render on a white background for the download
+    if (!canvas || !container) return;
+
+    // Create an offscreen canvas for export
     const offscreen = document.createElement("canvas");
     offscreen.width = canvas.width;
     offscreen.height = canvas.height;
     const ctx = offscreen.getContext("2d");
     if (!ctx) return;
-    ctx.fillStyle = "#ffffff";
+
+    // Fill white background
+    ctx.fillStyle = settings.backgroundColor;
     ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+
+    // Draw the main canvas content
     ctx.drawImage(canvas, 0, 0);
+
+    // Draw sticky notes on the export canvas
+    ctx.save();
+    ctx.translate(panOffset.x, panOffset.y);
+    ctx.scale(zoom, zoom);
+    
+    for (const note of stickyNotes) {
+      ctx.fillStyle = note.color;
+      ctx.fillRect(note.x, note.y, note.width, note.height);
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(note.x, note.y, note.width, note.height);
+      
+      // Draw text
+      ctx.fillStyle = "#000";
+      ctx.font = "14px sans-serif";
+      const lines = note.text.split("\n");
+      lines.forEach((line, i) => {
+        ctx.fillText(line, note.x + 10, note.y + 25 + i * 20, note.width - 20);
+      });
+
+      // Draw votes if any
+      if (note.votes > 0) {
+        ctx.fillText(`👍 ${note.votes}`, note.x + 10, note.y + note.height - 10);
+      }
+    }
+
+    // Draw text boxes
+    for (const textBox of textBoxes) {
+      ctx.strokeStyle = "#999";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(textBox.x, textBox.y, textBox.width, textBox.height);
+      
+      ctx.fillStyle = textBox.color;
+      ctx.font = `${textBox.bold ? "bold" : ""} ${textBox.italic ? "italic" : ""} ${textBox.fontSize}px ${textBox.fontFamily}`;
+      const lines = textBox.text.split("\n");
+      lines.forEach((line, i) => {
+        const x = textBox.x + 10;
+        const y = textBox.y + textBox.fontSize + 10 + i * (textBox.fontSize + 5);
+        ctx.fillText(line, x, y, textBox.width - 20);
+      });
+    }
+
+    ctx.restore();
+
     const link = document.createElement("a");
     link.download = "whiteboard.png";
     link.href = offscreen.toDataURL("image/png");
     link.click();
-  }, []);
+  }, [settings.backgroundColor, zoom, panOffset, stickyNotes, textBoxes]);
 
   // Zoom and pan handlers
   const handleZoom = useCallback((delta: number, centerX?: number, centerY?: number) => {
@@ -814,13 +962,11 @@ export default function Whiteboard() {
 
   // Keyboard shortcuts
   useEffect(() => {
-    let spacePressed = false;
-    
     const handleKeyDown = (e: KeyboardEvent) => {
       // Track spacebar for panning
-      if (e.key === " " && !spacePressed) {
-        spacePressed = true;
-        (e as any).spacebarPressed = true;
+      if (e.key === " " && !isSpacePressed) {
+        e.preventDefault();
+        setIsSpacePressed(true);
       }
 
       // Skip shortcuts when focus is on an input/textarea
@@ -849,8 +995,11 @@ export default function Whiteboard() {
       }
       if (mod && e.key === "g") {
         e.preventDefault();
-        // Toggle grid
-        setSettings((s) => ({ ...s, showGrid: !s.showGrid }));
+        if (e.shiftKey) {
+          ungroupObjects();
+        } else {
+          groupObjects();
+        }
       }
       if (!mod && e.key === "p") {
         setSettings((s) => ({ ...s, tool: "pen" }));
@@ -895,7 +1044,8 @@ export default function Whiteboard() {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === " ") {
-        spacePressed = false;
+        setIsSpacePressed(false);
+        setIsPanning(false);
       }
     };
 
@@ -905,7 +1055,7 @@ export default function Whiteboard() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [handleUndo, handleRedo, selectedNote, deleteStickyNote, duplicateStickyNote]);
+  }, [handleUndo, handleRedo, selectedNote, deleteStickyNote, duplicateStickyNote, isSpacePressed, groupObjects, ungroupObjects]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -922,6 +1072,10 @@ export default function Whiteboard() {
         onZoomChange={setZoom}
         showMinimap={showMinimap}
         onToggleMinimap={() => setShowMinimap(!showMinimap)}
+        onAlign={alignObjects}
+        onGroup={groupObjects}
+        onUngroup={ungroupObjects}
+        hasSelection={selectedObjects.length > 0}
       />
       <div ref={containerRef} className="flex-1 overflow-hidden relative">
         <canvas
@@ -946,11 +1100,13 @@ export default function Whiteboard() {
             key={note.id}
             className={`absolute p-3 rounded-lg shadow-lg cursor-move transition-shadow ${selectedNote === note.id ? "ring-2 ring-blue-400 shadow-xl" : ""}`}
             style={{
-              left: `${(note.x / canvasDimensions.width) * 100}%`,
-              top: `${(note.y / canvasDimensions.height) * 100}%`,
+              left: `${((note.x * zoom + panOffset.x) / canvasDimensions.width) * 100}%`,
+              top: `${((note.y * zoom + panOffset.y) / canvasDimensions.height) * 100}%`,
               width: `${note.width}px`,
               minHeight: `${note.height}px`,
               backgroundColor: note.color,
+              transform: `scale(${zoom})`,
+              transformOrigin: "top left",
             }}
             onMouseDown={(e) => {
               e.stopPropagation();
@@ -976,8 +1132,8 @@ export default function Whiteboard() {
                 const rect = container.getBoundingClientRect();
                 const scaleX = canvas.width / rect.width;
                 const scaleY = canvas.height / rect.height;
-                const newX = (e.clientX - rect.left - dragOffset.current.x) * scaleX;
-                const newY = (e.clientY - rect.top - dragOffset.current.y) * scaleY;
+                const newX = ((e.clientX - rect.left - dragOffset.current.x) * scaleX - panOffset.x) / zoom;
+                const newY = ((e.clientY - rect.top - dragOffset.current.y) * scaleY - panOffset.y) / zoom;
                 updateStickyNote(note.id, { x: newX, y: newY });
               }
             }}
