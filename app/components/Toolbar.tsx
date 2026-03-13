@@ -309,9 +309,6 @@ export default function Toolbar({
   const toggleTextUnderline = () =>
     onSettingsChange({ ...settings, textUnderline: !settings.textUnderline });
 
-  const setTextAlign = (align: "left" | "center" | "right") =>
-    onSettingsChange({ ...settings, textAlign: align });
-
   const toggleGridSnapping = () =>
     onSettingsChange({ ...settings, gridSnapping: !settings.gridSnapping });
 

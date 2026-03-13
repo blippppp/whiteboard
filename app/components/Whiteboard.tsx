@@ -93,8 +93,6 @@ interface Frame {
   color: string;
 }
 
-type WhiteboardObject = StickyNote | Shape | Connector | TextBox | Frame;
-
 interface ObjectGroup {
   id: string;
   objectIds: string[];
@@ -285,7 +283,6 @@ export default function Whiteboard() {
       } else if (shape.type === "arrow") {
         // Simple arrow pointing right
         const headWidth = shape.width * 0.3;
-        const headHeight = shape.height;
         const shaftHeight = shape.height * 0.5;
         ctx.moveTo(shape.x, shape.y + (shape.height - shaftHeight) / 2);
         ctx.lineTo(shape.x + shape.width - headWidth, shape.y + (shape.height - shaftHeight) / 2);
@@ -934,7 +931,7 @@ export default function Whiteboard() {
   }, [settings.backgroundColor, zoom, panOffset, stickyNotes, textBoxes]);
 
   // Zoom and pan handlers
-  const handleZoom = useCallback((delta: number, centerX?: number, centerY?: number) => {
+  const handleZoom = useCallback((delta: number) => {
     setZoom((prevZoom) => {
       const newZoom = Math.max(0.1, Math.min(5, prevZoom + delta));
       return newZoom;
