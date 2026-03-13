@@ -58,6 +58,12 @@ export default function Whiteboard() {
   const [draggingNote, setDraggingNote] = useState<string | null>(null);
   const dragOffset = useRef<Point>({ x: 0, y: 0 });
 
+  const getCursor = useCallback(() => {
+    if (settings.tool === "eraser") return "cell";
+    if (settings.tool === "sticky-note") return "copy";
+    return "crosshair";
+  }, [settings.tool]);
+
   const getCanvasPoint = useCallback(
     (e: { clientX: number; clientY: number }): Point => {
       const canvas = canvasRef.current!;
@@ -105,7 +111,7 @@ export default function Whiteboard() {
 
   const createStickyNote = useCallback((point: Point) => {
     const newNote: StickyNote = {
-      id: Math.random().toString(36).substring(7),
+      id: crypto.randomUUID(),
       x: point.x,
       y: point.y,
       width: 200,
@@ -368,7 +374,7 @@ export default function Whiteboard() {
           className="absolute inset-0 w-full h-full"
           style={{
             backgroundColor: settings.backgroundColor,
-            cursor: settings.tool === "eraser" ? "cell" : settings.tool === "sticky-note" ? "copy" : "crosshair",
+            cursor: getCursor(),
             touchAction: "none",
           }}
           onMouseDown={onMouseDown}
@@ -380,7 +386,7 @@ export default function Whiteboard() {
           onTouchEnd={onTouchEnd}
         />
         {/* Sticky notes */}
-        {stickyNotes.map((note) => (
+        {canvasDimensions.width > 0 && canvasDimensions.height > 0 && stickyNotes.map((note) => (
           <div
             key={note.id}
             className={`absolute p-3 rounded-lg shadow-lg cursor-move transition-shadow ${selectedNote === note.id ? "ring-2 ring-blue-400 shadow-xl" : ""}`}
@@ -393,18 +399,16 @@ export default function Whiteboard() {
             }}
             onMouseDown={(e) => {
               e.stopPropagation();
-              if (settings.tool !== "sticky-note") {
-                setSelectedNote(note.id);
-                setDraggingNote(note.id);
-                const rect = e.currentTarget.getBoundingClientRect();
-                dragOffset.current = {
-                  x: e.clientX - rect.left,
-                  y: e.clientY - rect.top,
-                };
-              }
+              setSelectedNote(note.id);
+              setDraggingNote(note.id);
+              const rect = e.currentTarget.getBoundingClientRect();
+              dragOffset.current = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+              };
             }}
             onMouseMove={(e) => {
-              if (draggingNote === note.id && settings.tool !== "sticky-note") {
+              if (draggingNote === note.id) {
                 e.stopPropagation();
                 const canvas = canvasRef.current;
                 const container = containerRef.current;
