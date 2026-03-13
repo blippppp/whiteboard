@@ -143,6 +143,15 @@ function DownloadIcon() {
   );
 }
 
+function StickyNoteIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z" />
+      <path d="M15 3v6h6" />
+    </svg>
+  );
+}
+
 export default function Toolbar({
   settings,
   onSettingsChange,
@@ -162,6 +171,9 @@ export default function Toolbar({
   const setStrokeWidth = (strokeWidth: number) =>
     onSettingsChange({ ...settings, strokeWidth });
 
+  const setBackgroundColor = (backgroundColor: string) =>
+    onSettingsChange({ ...settings, backgroundColor });
+
   return (
     <header className="flex items-center gap-2 px-4 py-2 bg-white border-b border-gray-200 shadow-sm flex-wrap">
       {/* App name */}
@@ -177,6 +189,9 @@ export default function Toolbar({
       </ToolButton>
       <ToolButton tool="eraser" currentTool={settings.tool} onSelect={setTool} title="Eraser (E)">
         <EraserIcon />
+      </ToolButton>
+      <ToolButton tool="sticky-note" currentTool={settings.tool} onSelect={setTool} title="Sticky Note (N)">
+        <StickyNoteIcon />
       </ToolButton>
 
       <div className="w-px h-6 bg-gray-200 mx-1" />
@@ -239,6 +254,27 @@ export default function Toolbar({
             />
           </button>
         ))}
+      </div>
+
+      <div className="w-px h-6 bg-gray-200 mx-1" />
+
+      {/* Background color */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-600 select-none">Background:</span>
+        <label title="Background color" className="relative cursor-pointer">
+          <span className="sr-only">Background color</span>
+          <div 
+            className="w-6 h-6 rounded-full border-2 border-gray-300 hover:scale-110 transition-transform"
+            style={{ backgroundColor: settings.backgroundColor }}
+          />
+          <input
+            type="color"
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            value={settings.backgroundColor}
+            onChange={(e) => setBackgroundColor(e.target.value)}
+            aria-label="Background color picker"
+          />
+        </label>
       </div>
 
       <div className="w-px h-6 bg-gray-200 mx-1" />

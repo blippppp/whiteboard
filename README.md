@@ -6,7 +6,9 @@ A clean, fast, canvas-based whiteboard application built with **Next.js** and **
 
 - 🖊️ **Freehand drawing** with smooth strokes
 - 🧹 **Eraser** tool
+- 📝 **Sticky notes** - Add draggable, editable notes to the whiteboard
 - 🎨 **Color picker** (9 presets + custom)
+- 🌈 **Background color** chooser
 - 📏 **Stroke width** selector (4 sizes)
 - ↩️ **Undo / Redo** (Ctrl+Z / Ctrl+Shift+Z)
 - 🗑️ **Clear canvas** button
