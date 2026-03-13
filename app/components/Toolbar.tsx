@@ -499,7 +499,7 @@ export default function Toolbar({
       )}
 
       {/* Grid and snap options */}
-      <IconButton onClick={toggleShowGrid} active={settings.showGrid} title="Show Grid (Ctrl+G)">
+      <IconButton onClick={toggleShowGrid} active={settings.showGrid} title="Show Grid (G)">
         <GridIcon />
       </IconButton>
       <IconButton onClick={toggleGridSnapping} active={settings.gridSnapping} title="Snap to Grid">

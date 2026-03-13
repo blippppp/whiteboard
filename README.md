@@ -76,7 +76,9 @@ A modern, feature-rich collaborative whiteboard application built with **Next.js
 - `Ctrl + Z` - Undo
 - `Ctrl + Shift + Z` or `Ctrl + Y` - Redo
 - `Ctrl + D` - Duplicate selected object
-- `Ctrl + G` - Toggle grid
+- `Ctrl + G` - Group selected objects
+- `Ctrl + Shift + G` - Ungroup selected objects
+- `G` - Toggle grid display
 - `Delete` or `Backspace` - Delete selected object
 - `Escape` - Deselect all
 - `Ctrl + Mouse Wheel` - Zoom in/out

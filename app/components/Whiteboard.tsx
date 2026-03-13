@@ -5,6 +5,10 @@ import Toolbar from "./Toolbar";
 
 export type Tool = "pen" | "eraser" | "sticky-note" | "text" | "rectangle" | "circle" | "diamond" | "arrow" | "line" | "connector" | "frame" | "select";
 
+const SHAPE_TOOLS: Tool[] = ["rectangle", "circle", "diamond", "arrow"];
+const LINE_TOOLS: Tool[] = ["line", "connector"];
+const FRAME_TOOL: Tool = "frame";
+
 export interface DrawingSettings {
   tool: Tool;
   color: string;
@@ -153,7 +157,7 @@ export default function Whiteboard() {
     if (settings.tool === "sticky-note") return "copy";
     if (settings.tool === "select") return "default";
     if (settings.tool === "text") return "text";
-    if (["rectangle", "circle", "diamond", "arrow", "line", "connector", "frame"].includes(settings.tool)) return "crosshair";
+    if ([...SHAPE_TOOLS, ...LINE_TOOLS, FRAME_TOOL].includes(settings.tool)) return "crosshair";
     return "crosshair";
   }, [settings.tool, isPanning, isSpacePressed]);
 
@@ -634,7 +638,9 @@ export default function Whiteboard() {
         createStickyNote(point);
       } else if (settings.tool === "text") {
         createTextBox(point);
-      } else if (["rectangle", "circle", "diamond", "arrow", "line", "connector", "frame"].includes(settings.tool)) {
+      } else if ((SHAPE_TOOLS as readonly Tool[]).includes(settings.tool)) {
+        setCurrentShapeStart(point);
+      } else if ((LINE_TOOLS as readonly Tool[]).includes(settings.tool) || settings.tool === FRAME_TOOL) {
         setCurrentShapeStart(point);
       } else if (settings.tool === "select") {
         setIsSelecting(true);
@@ -691,7 +697,8 @@ export default function Whiteboard() {
         const width = point.x - currentShapeStart.x;
         const height = point.y - currentShapeStart.y;
         
-        if (settings.tool === "rectangle" || settings.tool === "frame") {
+        if (settings.tool === "rectangle" || settings.tool === FRAME_TOOL) {
+          // Rectangle or frame
           ctx.strokeRect(currentShapeStart.x, currentShapeStart.y, width, height);
         } else if (settings.tool === "circle") {
           const centerX = currentShapeStart.x + width / 2;
@@ -700,7 +707,7 @@ export default function Whiteboard() {
           ctx.beginPath();
           ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
           ctx.stroke();
-        } else if (settings.tool === "line" || settings.tool === "connector") {
+        } else if ((LINE_TOOLS as readonly Tool[]).includes(settings.tool)) {
           ctx.beginPath();
           ctx.moveTo(currentShapeStart.x, currentShapeStart.y);
           ctx.lineTo(point.x, point.y);
@@ -736,33 +743,28 @@ export default function Whiteboard() {
       };
 
       const selected: string[] = [];
+      
+      // Helper to check if two boxes intersect
+      const boxesIntersect = (box1: { x: number; y: number; width: number; height: number }, 
+                             box2: { x: number; y: number; width: number; height: number }) => {
+        return !(box1.x + box1.width < box2.x || 
+                 box2.x + box2.width < box1.x || 
+                 box1.y + box1.height < box2.y || 
+                 box2.y + box2.height < box1.y);
+      };
+
       stickyNotes.forEach((note) => {
-        if (
-          note.x >= normalizedBox.x &&
-          note.x <= normalizedBox.x + normalizedBox.width &&
-          note.y >= normalizedBox.y &&
-          note.y <= normalizedBox.y + normalizedBox.height
-        ) {
+        if (boxesIntersect(normalizedBox, { x: note.x, y: note.y, width: note.width, height: note.height })) {
           selected.push(note.id);
         }
       });
       shapes.forEach((shape) => {
-        if (
-          shape.x >= normalizedBox.x &&
-          shape.x <= normalizedBox.x + normalizedBox.width &&
-          shape.y >= normalizedBox.y &&
-          shape.y <= normalizedBox.y + normalizedBox.height
-        ) {
+        if (boxesIntersect(normalizedBox, { x: shape.x, y: shape.y, width: shape.width, height: shape.height })) {
           selected.push(shape.id);
         }
       });
       textBoxes.forEach((textBox) => {
-        if (
-          textBox.x >= normalizedBox.x &&
-          textBox.x <= normalizedBox.x + normalizedBox.width &&
-          textBox.y >= normalizedBox.y &&
-          textBox.y <= normalizedBox.y + normalizedBox.height
-        ) {
+        if (boxesIntersect(normalizedBox, { x: textBox.x, y: textBox.y, width: textBox.width, height: textBox.height })) {
           selected.push(textBox.id);
         }
       });
@@ -775,11 +777,11 @@ export default function Whiteboard() {
 
     if (currentShapeStart) {
       const tool = settings.tool;
-      if (tool === "rectangle" || tool === "circle" || tool === "diamond" || tool === "arrow") {
-        createShape(tool, currentShapeStart, point);
-      } else if (tool === "line" || tool === "connector") {
+      if ((SHAPE_TOOLS as readonly Tool[]).includes(tool)) {
+        createShape(tool as "rectangle" | "circle" | "diamond" | "arrow", currentShapeStart, point);
+      } else if ((LINE_TOOLS as readonly Tool[]).includes(tool)) {
         createConnector(currentShapeStart, point);
-      } else if (tool === "frame") {
+      } else if (tool === FRAME_TOOL) {
         createFrame(currentShapeStart, point);
       }
       setCurrentShapeStart(null);
@@ -913,7 +915,12 @@ export default function Whiteboard() {
       ctx.strokeRect(textBox.x, textBox.y, textBox.width, textBox.height);
       
       ctx.fillStyle = textBox.color;
-      ctx.font = `${textBox.bold ? "bold" : ""} ${textBox.italic ? "italic" : ""} ${textBox.fontSize}px ${textBox.fontFamily}`;
+      const fontParts = [];
+      if (textBox.bold) fontParts.push("bold");
+      if (textBox.italic) fontParts.push("italic");
+      fontParts.push(`${textBox.fontSize}px`);
+      fontParts.push(textBox.fontFamily);
+      ctx.font = fontParts.join(" ");
       const lines = textBox.text.split("\n");
       lines.forEach((line, i) => {
         const x = textBox.x + 10;
@@ -960,17 +967,17 @@ export default function Whiteboard() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip shortcuts when focus is on an input/textarea (check this first)
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) return;
+
       // Track spacebar for panning
       if (e.key === " " && !isSpacePressed) {
         e.preventDefault();
         setIsSpacePressed(true);
       }
-
-      // Skip shortcuts when focus is on an input/textarea
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) return;
 
       const mod = e.ctrlKey || e.metaKey;
       
@@ -1024,6 +1031,9 @@ export default function Whiteboard() {
       }
       if (!mod && e.key === "m") {
         setShowMinimap((prev) => !prev);
+      }
+      if (!mod && e.key === "g") {
+        setSettings((s) => ({ ...s, showGrid: !s.showGrid }));
       }
       if (e.key === "Delete" || e.key === "Backspace") {
         if (selectedNote) {
@@ -1099,11 +1109,9 @@ export default function Whiteboard() {
             style={{
               left: `${((note.x * zoom + panOffset.x) / canvasDimensions.width) * 100}%`,
               top: `${((note.y * zoom + panOffset.y) / canvasDimensions.height) * 100}%`,
-              width: `${note.width}px`,
-              minHeight: `${note.height}px`,
+              width: `${note.width * zoom}px`,
+              minHeight: `${note.height * zoom}px`,
               backgroundColor: note.color,
-              transform: `scale(${zoom})`,
-              transformOrigin: "top left",
             }}
             onMouseDown={(e) => {
               e.stopPropagation();
@@ -1195,8 +1203,6 @@ export default function Whiteboard() {
               top: `${((textBox.y * zoom + panOffset.y) / canvasDimensions.height) * 100}%`,
               width: `${textBox.width * zoom}px`,
               minHeight: `${textBox.height * zoom}px`,
-              transform: `scale(${zoom})`,
-              transformOrigin: "top left",
             }}
           >
             <textarea
