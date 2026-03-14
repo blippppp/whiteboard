@@ -61,7 +61,7 @@ interface Shape {
 
 interface Connector {
   id: string;
-  type: "line" | "connector";
+  type?: "line" | "connector"; // Optional for backward compatibility
   startObjectId: string | null;
   endObjectId: string | null;
   startX: number;
@@ -243,8 +243,8 @@ export default function Whiteboard() {
       ctx.lineTo(connector.endX, connector.endY);
       ctx.stroke();
       
-      // Draw arrowhead only for connector type, not for line type
-      if (connector.type === "connector") {
+      // Draw arrowhead only for connector type (default to connector for backward compatibility)
+      if (!connector.type || connector.type === "connector") {
         const angle = Math.atan2(connector.endY - connector.startY, connector.endX - connector.startX);
         const arrowSize = 10;
         ctx.beginPath();
@@ -351,10 +351,10 @@ export default function Whiteboard() {
           };
           ctx.quadraticCurveTo(currentPoint.x, currentPoint.y, midPoint.x, midPoint.y);
         }
-        // Draw to the last point
+        // Draw to the last point using the second last point as control
         const lastPoint = stroke.points[stroke.points.length - 1];
         const secondLastPoint = stroke.points[stroke.points.length - 2];
-        ctx.quadraticCurveTo(lastPoint.x, lastPoint.y, lastPoint.x, lastPoint.y);
+        ctx.quadraticCurveTo(secondLastPoint.x, secondLastPoint.y, lastPoint.x, lastPoint.y);
       }
       ctx.stroke();
       ctx.restore();
