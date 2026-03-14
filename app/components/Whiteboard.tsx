@@ -646,11 +646,11 @@ export default function Whiteboard() {
       // Use quadratic curve for smoother drawing - match rendering logic
       ctx.beginPath();
       if (stroke.points.length === 2) {
-        // First segment - just draw a line
+        // Two points - draw straight line
         ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
         ctx.lineTo(point.x, point.y);
       } else if (stroke.points.length === 3) {
-        // Second segment - draw quadratic curve using first 3 points
+        // Three points - draw quadratic curve
         ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
         ctx.quadraticCurveTo(
           stroke.points[1].x,
@@ -659,7 +659,7 @@ export default function Whiteboard() {
           point.y
         );
       } else {
-        // Third+ segment - draw from previous midpoint through previous point to current midpoint
+        // Four or more points - draw smooth curves between midpoints
         const prevPrev = stroke.points[stroke.points.length - 3];
         const startMid = {
           x: (prevPrev.x + prev.x) / 2,
