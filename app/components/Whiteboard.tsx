@@ -45,6 +45,7 @@ interface StickyNote {
   height: number;
   text: string;
   color: string;
+  textColor?: string; // Optional for backward compatibility
   votes: number;
 }
 
@@ -212,6 +213,26 @@ export default function Whiteboard() {
       });
     });
   }, [settings.color, settings.fontSize, settings.textBold, settings.textItalic, settings.textUnderline, settings.textAlign, selectedObjects]);
+
+  // Update selected sticky notes' text color when color changes
+  useEffect(() => {
+    if (selectedObjects.length === 0 || selectedNote === null) return;
+    
+    setStickyNotes((prev) => {
+      const hasSelectedNotes = prev.some((note) => selectedObjects.includes(note.id) || note.id === selectedNote);
+      if (!hasSelectedNotes) return prev;
+      
+      return prev.map((note) => {
+        if (selectedObjects.includes(note.id) || note.id === selectedNote) {
+          return {
+            ...note,
+            textColor: settings.color,
+          };
+        }
+        return note;
+      });
+    });
+  }, [settings.color, selectedObjects, selectedNote]);
 
   const redrawAll = useCallback(() => {
     const canvas = canvasRef.current;
@@ -402,6 +423,7 @@ export default function Whiteboard() {
       height: 150,
       text: "",
       color: noteColor,
+      textColor: STICKY_NOTE_TEXT_COLOR, // Default text color
       votes: 0,
     };
     setStickyNotes((prev) => [...prev, newNote]);
@@ -990,7 +1012,7 @@ export default function Whiteboard() {
       ctx.strokeRect(note.x, note.y, note.width, note.height);
       
       // Draw text
-      ctx.fillStyle = "#000";
+      ctx.fillStyle = note.textColor || STICKY_NOTE_TEXT_COLOR;
       ctx.font = "14px sans-serif";
       const lines = note.text.split("\n");
       lines.forEach((line, i) => {
@@ -1247,7 +1269,7 @@ export default function Whiteboard() {
               style={{ 
                 minHeight: `${note.height - 50}px`, 
                 height: "auto",
-                color: STICKY_NOTE_TEXT_COLOR
+                color: note.textColor || STICKY_NOTE_TEXT_COLOR
               }}
               value={note.text}
               placeholder="Type your note..."
