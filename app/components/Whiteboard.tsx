@@ -846,7 +846,7 @@ export default function Whiteboard() {
       if ((SHAPE_TOOLS as readonly Tool[]).includes(tool)) {
         createShape(tool as "rectangle" | "circle" | "diamond" | "arrow", currentShapeStart, point);
       } else if ((LINE_TOOLS as readonly Tool[]).includes(tool)) {
-        // Pass the tool type to create the correct connector type
+        // At this point, tool is guaranteed to be either "line" or "connector" by LINE_TOOLS check
         createConnector(currentShapeStart, point, tool as "line" | "connector");
       } else if (tool === FRAME_TOOL) {
         createFrame(currentShapeStart, point);
@@ -1216,7 +1216,11 @@ export default function Whiteboard() {
           >
             <textarea
               className="w-full bg-transparent border-none outline-none resize-none font-sans text-sm"
-              style={{ minHeight: `${note.height - 50}px`, height: "auto" }}
+              style={{ 
+                minHeight: `${note.height - 50}px`, 
+                height: "auto",
+                color: "#1a1a1a" // Dark text color for readability on light sticky note backgrounds
+              }}
               value={note.text}
               placeholder="Type your note..."
               onClick={(e) => e.stopPropagation()}
