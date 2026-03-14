@@ -216,12 +216,9 @@ export default function Whiteboard() {
 
   // Update selected sticky notes' text color when color changes
   useEffect(() => {
-    if (selectedObjects.length === 0 || selectedNote === null) return;
+    if (selectedObjects.length === 0 && selectedNote === null) return;
     
     setStickyNotes((prev) => {
-      const hasSelectedNotes = prev.some((note) => selectedObjects.includes(note.id) || note.id === selectedNote);
-      if (!hasSelectedNotes) return prev;
-      
       return prev.map((note) => {
         if (selectedObjects.includes(note.id) || note.id === selectedNote) {
           return {
