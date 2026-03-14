@@ -187,6 +187,8 @@ export default function Whiteboard() {
   }, [settings.gridSnapping]);
 
   // Update selected text boxes when font settings change
+  // Note: React's setState with function form prevents unnecessary updates
+  // by comparing the returned state with previous state
   useEffect(() => {
     if (selectedObjects.length === 0) return;
     
@@ -872,7 +874,7 @@ export default function Whiteboard() {
       if ((SHAPE_TOOLS as readonly Tool[]).includes(tool)) {
         createShape(tool as "rectangle" | "circle" | "diamond" | "arrow", currentShapeStart, point);
       } else if ((LINE_TOOLS as readonly Tool[]).includes(tool)) {
-        // At this point, tool is guaranteed to be either "line" or "connector" by LINE_TOOLS check
+        // Tool is validated as 'line' or 'connector' by the LINE_TOOLS check above
         createConnector(currentShapeStart, point, tool as "line" | "connector");
       } else if (tool === FRAME_TOOL) {
         createFrame(currentShapeStart, point);
