@@ -185,6 +185,31 @@ export default function Whiteboard() {
     };
   }, [settings.gridSnapping]);
 
+  // Update selected text boxes when font settings change
+  useEffect(() => {
+    if (selectedObjects.length === 0 || settings.tool !== "text") return;
+    
+    setTextBoxes((prev) => {
+      const hasSelectedTextBoxes = prev.some((tb) => selectedObjects.includes(tb.id));
+      if (!hasSelectedTextBoxes) return prev;
+      
+      return prev.map((tb) => {
+        if (selectedObjects.includes(tb.id)) {
+          return {
+            ...tb,
+            color: settings.color,
+            fontSize: settings.fontSize,
+            bold: settings.textBold,
+            italic: settings.textItalic,
+            underline: settings.textUnderline,
+            align: settings.textAlign,
+          };
+        }
+        return tb;
+      });
+    });
+  }, [settings.color, settings.fontSize, settings.textBold, settings.textItalic, settings.textUnderline, settings.textAlign, settings.tool, selectedObjects]);
+
   const redrawAll = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -1274,6 +1299,10 @@ export default function Whiteboard() {
               top: `${((textBox.y * zoom + panOffset.y) / canvasDimensions.height) * 100}%`,
               width: `${textBox.width * zoom}px`,
               minHeight: `${textBox.height * zoom}px`,
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedObjects([textBox.id]);
             }}
           >
             <textarea
