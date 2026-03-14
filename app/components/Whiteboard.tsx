@@ -8,6 +8,7 @@ export type Tool = "pen" | "eraser" | "sticky-note" | "text" | "rectangle" | "ci
 const SHAPE_TOOLS: Tool[] = ["rectangle", "circle", "diamond", "arrow"];
 const LINE_TOOLS: Tool[] = ["line", "connector"];
 const FRAME_TOOL: Tool = "frame";
+const STICKY_NOTE_TEXT_COLOR = "#1a1a1a";
 
 export interface DrawingSettings {
   tool: Tool;
@@ -187,7 +188,7 @@ export default function Whiteboard() {
 
   // Update selected text boxes when font settings change
   useEffect(() => {
-    if (selectedObjects.length === 0 || settings.tool !== "text") return;
+    if (selectedObjects.length === 0) return;
     
     setTextBoxes((prev) => {
       const hasSelectedTextBoxes = prev.some((tb) => selectedObjects.includes(tb.id));
@@ -208,7 +209,7 @@ export default function Whiteboard() {
         return tb;
       });
     });
-  }, [settings.color, settings.fontSize, settings.textBold, settings.textItalic, settings.textUnderline, settings.textAlign, settings.tool, selectedObjects]);
+  }, [settings.color, settings.fontSize, settings.textBold, settings.textItalic, settings.textUnderline, settings.textAlign, selectedObjects]);
 
   const redrawAll = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1244,7 +1245,7 @@ export default function Whiteboard() {
               style={{ 
                 minHeight: `${note.height - 50}px`, 
                 height: "auto",
-                color: "#1a1a1a" // Dark text color for readability on light sticky note backgrounds
+                color: STICKY_NOTE_TEXT_COLOR
               }}
               value={note.text}
               placeholder="Type your note..."
