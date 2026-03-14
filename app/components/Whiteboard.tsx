@@ -61,6 +61,7 @@ interface Shape {
 
 interface Connector {
   id: string;
+  type: "line" | "connector";
   startObjectId: string | null;
   endObjectId: string | null;
   startX: number;
@@ -241,21 +242,24 @@ export default function Whiteboard() {
       ctx.moveTo(connector.startX, connector.startY);
       ctx.lineTo(connector.endX, connector.endY);
       ctx.stroke();
-      // Draw arrowhead
-      const angle = Math.atan2(connector.endY - connector.startY, connector.endX - connector.startX);
-      const arrowSize = 10;
-      ctx.beginPath();
-      ctx.moveTo(connector.endX, connector.endY);
-      ctx.lineTo(
-        connector.endX - arrowSize * Math.cos(angle - Math.PI / 6),
-        connector.endY - arrowSize * Math.sin(angle - Math.PI / 6)
-      );
-      ctx.moveTo(connector.endX, connector.endY);
-      ctx.lineTo(
-        connector.endX - arrowSize * Math.cos(angle + Math.PI / 6),
-        connector.endY - arrowSize * Math.sin(angle + Math.PI / 6)
-      );
-      ctx.stroke();
+      
+      // Draw arrowhead only for connector type, not for line type
+      if (connector.type === "connector") {
+        const angle = Math.atan2(connector.endY - connector.startY, connector.endX - connector.startX);
+        const arrowSize = 10;
+        ctx.beginPath();
+        ctx.moveTo(connector.endX, connector.endY);
+        ctx.lineTo(
+          connector.endX - arrowSize * Math.cos(angle - Math.PI / 6),
+          connector.endY - arrowSize * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.moveTo(connector.endX, connector.endY);
+        ctx.lineTo(
+          connector.endX - arrowSize * Math.cos(angle + Math.PI / 6),
+          connector.endY - arrowSize * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -317,8 +321,23 @@ export default function Whiteboard() {
       ctx.lineWidth = stroke.strokeWidth;
       ctx.beginPath();
       ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-      for (let i = 1; i < stroke.points.length; i++) {
-        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      
+      // Use quadratic curves for smooth rendering
+      if (stroke.points.length === 2) {
+        ctx.lineTo(stroke.points[1].x, stroke.points[1].y);
+      } else {
+        for (let i = 1; i < stroke.points.length - 1; i++) {
+          const currentPoint = stroke.points[i];
+          const nextPoint = stroke.points[i + 1];
+          const midPoint = {
+            x: (currentPoint.x + nextPoint.x) / 2,
+            y: (currentPoint.y + nextPoint.y) / 2,
+          };
+          ctx.quadraticCurveTo(currentPoint.x, currentPoint.y, midPoint.x, midPoint.y);
+        }
+        // Draw the last segment
+        const lastPoint = stroke.points[stroke.points.length - 1];
+        ctx.lineTo(lastPoint.x, lastPoint.y);
       }
       ctx.stroke();
       ctx.restore();
@@ -343,6 +362,8 @@ export default function Whiteboard() {
     setStickyNotes((prev) => [...prev, newNote]);
     setSelectedNote(newNote.id);
     setSelectedObjects([newNote.id]);
+    // Auto-switch back to pen tool after creating sticky note
+    setSettings((prev) => ({ ...prev, tool: "pen" }));
   }, [snapToGrid, settings.color]);
 
   const updateStickyNote = useCallback((id: string, updates: Partial<StickyNote>) => {
@@ -426,11 +447,12 @@ export default function Whiteboard() {
     setSelectedObjects([newFrame.id]);
   }, [snapToGrid]);
 
-  const createConnector = useCallback((start: Point, end: Point) => {
+  const createConnector = useCallback((start: Point, end: Point, type: "line" | "connector" = "connector") => {
     const snappedStart = snapToGrid(start);
     const snappedEnd = snapToGrid(end);
     const newConnector: Connector = {
       id: crypto.randomUUID(),
+      type,
       startObjectId: null,
       endObjectId: null,
       startX: snappedStart.x,
@@ -603,10 +625,25 @@ export default function Whiteboard() {
         ctx.strokeStyle = stroke.color;
       }
       ctx.lineWidth = stroke.strokeWidth;
-      ctx.beginPath();
-      ctx.moveTo(prev.x, prev.y);
-      ctx.lineTo(point.x, point.y);
-      ctx.stroke();
+      
+      // Use quadratic curve for smoother drawing
+      if (stroke.points.length >= 3) {
+        const prevPrev = stroke.points[stroke.points.length - 3];
+        const controlPoint = {
+          x: (prevPrev.x + prev.x) / 2,
+          y: (prevPrev.y + prev.y) / 2,
+        };
+        ctx.beginPath();
+        ctx.moveTo(controlPoint.x, controlPoint.y);
+        ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + point.x) / 2, (prev.y + point.y) / 2);
+        ctx.stroke();
+      } else {
+        // For the first few points, use straight lines
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+      }
       ctx.restore();
     },
     []
@@ -780,7 +817,8 @@ export default function Whiteboard() {
       if ((SHAPE_TOOLS as readonly Tool[]).includes(tool)) {
         createShape(tool as "rectangle" | "circle" | "diamond" | "arrow", currentShapeStart, point);
       } else if ((LINE_TOOLS as readonly Tool[]).includes(tool)) {
-        createConnector(currentShapeStart, point);
+        // Pass the tool type to create the correct connector type
+        createConnector(currentShapeStart, point, tool as "line" | "connector");
       } else if (tool === FRAME_TOOL) {
         createFrame(currentShapeStart, point);
       }

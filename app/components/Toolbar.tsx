@@ -289,7 +289,7 @@ export default function Toolbar({
     onSettingsChange({ ...settings, tool });
 
   const setColor = (color: string) =>
-    onSettingsChange({ ...settings, color, tool: "pen" });
+    onSettingsChange({ ...settings, color });
 
   const setStrokeWidth = (strokeWidth: number) =>
     onSettingsChange({ ...settings, strokeWidth });
